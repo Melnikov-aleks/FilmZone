@@ -1,0 +1,100 @@
+.search-box {
+    display: flex;
+    align-items: center;
+    .search-form {
+        position: relative;
+        display: flex;
+        justify-content: flex-end;
+        align-items: stretch;
+        .search-list {
+            position: absolute;
+            padding: 0;
+            margin: 0;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            min-height: 50px;
+            list-style: none;
+            font-size: 1rem;
+            border-radius: 13px;
+            background-color: $color-primary;
+            box-shadow: 0px 10px 25px -5px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            z-index: 1000;
+            .search-item {
+                margin: 0 10px;
+                padding: 4px 10px;
+                border-bottom: 1px solid $color-secondary;
+                &:last-child {
+                    border-bottom: none;
+                }
+                &__title {
+                    width: 100%;
+                    padding: 0;
+                    margin: 0;
+                    font-size: 1em;
+                    line-height: 1em;
+                }
+                &__release {
+                    font-size: 0.7em;
+                }
+                &__more {
+                    padding: 0;
+                    margin: 0;
+                }
+            }
+            &.loading::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 100%;
+                background: center / contain no-repeat url('../img/preloader.svg');
+            }
+        }
+
+        .btn {
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 30px;
+            height: calc(100% - 6px);
+            margin: 3px;
+            padding: 0;
+            border: 2px solid transparent;
+            border-left: none;
+            border-right: none;
+            border-radius: 100px;
+            background: center / contain no-repeat url('../img/search.svg');
+            cursor: pointer;
+            &:focus {
+                outline: none;
+                box-shadow: 0 0 0 1px $color-accent;
+            }
+            &::after {
+                content: '';
+                position: absolute;
+                left: -7px;
+                top: 2%;
+                height: 96%;
+                width: 1px;
+                background-color: rgba($color: $color-secondary, $alpha: 0.4);
+            }
+        }
+        .input {
+            width: 100%;
+            padding: 5px 40px 5px 10px;
+            border: none;
+            border-radius: 13px;
+            background-color: $color-primary;
+            box-shadow: 2px 3px 10px -5px black;
+            font-size: 0.9rem;
+            &:focus {
+                outline: none;
+                box-shadow: inset 0 0 1px 1px $color-accent, 2px 3px 10px -5px black;
+            }
+        }
+    }
+}

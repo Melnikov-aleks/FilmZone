@@ -1,104 +1,114 @@
-import getDataAPI from '../utils/getDataAPI.js';
-import generateUrlAPI from '../utils/generateUrlAPI.js';
-import Films from './Films.js';
-import Content from './Content';
+import { generateUrlAPI, getDataAPI } from '../utils/API';
+import { getSearchHtml } from '../utils/templates';
 
-// let inputSearch = null;
-
-class Search {
-    render() {
-        let innerHtml = `
-			<input
-				class="search-box__search-txt search-txt"
-				id="search"
-				type="search"
-				name="search"
-				autocomplete="off"
-				placeholder="Найти фильм..."
-			/>
-			<div
-				class="search-box__search-button search-button"
-				id="goSearch"
-			></div>
-		`;
-
-        const wrapperHtml = document.createElement('div');
-        wrapperHtml.classList.add('header__search-box', 'search-box');
-        wrapperHtml.insertAdjacentHTML('afterbegin', innerHtml);
-
-        document.querySelector('.header__container').append(wrapperHtml);
+export default class Search {
+    constructor(selector, updateCallback) {
+        this.container = document.querySelector(selector);
+        this.update = updateCallback;
     }
-    async renderDropList(query) {
-        const data = await getDataAPI.getData(generateUrlAPI.generate(query));
-        console.log(data);
-
-        let innerHtml = '';
-
-        data.results.forEach((film, i) => {
-            if (i > 5) return;
-
-            innerHtml += `
-			<li class="search-list__search-item search-item">
-				<p class="search-item__title">${film.title}</p> 
-				<span class="search-item__release">${film.release_date}</span>
-			</li>
-			`;
-        });
-
-        const wrapperHtml = document.createElement('ul');
-        wrapperHtml.classList.add('search-box__search-list', 'search-list');
-        wrapperHtml.insertAdjacentHTML('afterbegin', innerHtml);
-        document.querySelector('.search-box').append(wrapperHtml);
+    render() {
+        this.container.insertAdjacentHTML('beforeend', getSearchHtml());
+        this.form = this.container.querySelector('.search-form');
+        this.addEvent();
+    }
+    get searchListAll() {
+        return document.querySelector('.search-list');
+    }
+    get searchList() {
+        return this.container.querySelector('.search-list');
     }
     addEvent() {
-        let inputSearch = document.getElementById('search');
-        const url = new URL(document.location);
-
-        inputSearch.addEventListener('input', () => {
-            while (document.querySelector('.search-list')) {
-                document.querySelector('.search-list').remove();
+        this.form.addEventListener('input', () => {
+            while (this.searchListAll) {
+                this.searchListAll.remove();
             }
-            if (inputSearch.value.trim().length < 3) return;
-            this.renderDropList(inputSearch.value.trim());
+            if (this.form.film.value.trim().length < 3) return;
+            document.querySelectorAll('.search-form').forEach((form) => {
+                if (form.film.value !== this.form.film.value) {
+                    form.film.value = this.form.film.value;
+                }
+            });
+            this.renderDropList(this.form.film.value.trim());
         });
 
-        inputSearch.addEventListener('blur', () => {
-            if (document.querySelector('.search-list')) {
-                document.querySelector('.search-list').classList.add('hide');
+        this.form.addEventListener('focusin', () => {
+            if (this.searchList) {
+                setTimeout(() => {
+                    this.searchList.classList.remove('hide');
+                }, 0);
+            } else if (this.form.film.value.trim().length >= 3) {
+                this.renderDropList(this.form.film.value.trim());
             }
         });
-        inputSearch.addEventListener('focus', () => {
-            if (document.querySelector('.search-list')) {
-                document.querySelector('.search-list').classList.remove('hide');
+        this.form.addEventListener('focusout', () => {
+            if (this.searchList) {
+                setTimeout(() => {
+                    this.searchList.classList.add('hide');
+                }, 0);
             }
         });
+        this.form.addEventListener('click', (event) => {
+            if (!event.target.closest('.search-item')) return;
 
-        document.getElementById('goSearch').addEventListener('click', () => {
-            if (inputSearch.value.trim().length < 3) return;
-            console.log(url);
-            url.searchParams.set('do', 'search');
-            url.searchParams.set('q', inputSearch.value.trim());
-            url.searchParams.delete('page');
-            url.searchParams.delete('id');
-            history.pushState(null, null, url);
-            Content.render();
+            this.update(this.setAttr(event.target.closest('.search-item')));
+        });
+        this.form.addEventListener('keydown', (event) => {
+            if (event.keyCode !== 13 || !event.target.closest('.search-item')) return;
+
+            this.update(this.setAttr(event.target.closest('.search-item')));
+        });
+        this.form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            document.activeElement.blur();
+            this.update(this.setAttr(event.target));
         });
     }
-    // addEventBtn() {
-    //     inputSearch = document.getElementById('search');
-    //     const url = new URL(document.location);
+    async renderDropList(query) {
+        this.form.insertAdjacentHTML(
+            'beforeend',
+            `<ul class="search-form__search-list search-list loading"></ul>`
+        );
+        this.searchList.style.maxHeight = `calc(100vh - ${
+            this.searchList.getBoundingClientRect().top
+        }px)`;
+        const data = await getDataAPI(generateUrlAPI(query));
+        if (!data) return;
+        const items = [];
+        let more = '';
+        for (let i = 0; i < Math.min(data.total_results, 6); i++) {
+            const film = data.results[i];
+            items.push(`
+			<li class="search-list__search-item search-item" data-id="${film.id}" tabindex=0>
+				<p class="search-item__title">${film.title}</p> 
+				<span class="search-item__release">${film.release_date}</span>
+			</li>`);
+        }
+        if (data.total_results == 0)
+            more = `<p class="search-item__more">По запросу ничего не найдено</p>`;
+        else if (data.total_results - 6 > 0)
+            more = `<p class="search-item__more">Показать еще <span class="search-item__num">${
+                data.total_results - 6
+            }</span> фильмов</p>`;
+        else
+            more = `<p class="search-item__more">Показать все <span class="search-item__num">${data.total_results}</span> фильмов</p>`;
 
-    //     document.getElementById('goSearch').addEventListener('click', () => {
-    //         if (inputSearch.value.trim().length < 3) return;
-    //         console.log(url);
-    //         url.searchParams.set('do', 'search');
-    //         url.searchParams.set('q', inputSearch.value.trim());
-    //         url.searchParams.delete('page');
-    //         url.searchParams.delete('id');
-    //         history.pushState(null, null, url);
-    //         Films.renderCards();
-    //     });
-    // }
+        items.push(`
+		<li class="search-list__search-item search-item" tabindex=0>
+			${more}
+		</li>`);
+
+        this.searchList.insertAdjacentHTML('beforeend', items.join(''));
+        this.searchList.classList.remove('loading');
+    }
+    setAttr(elem) {
+        const params = {};
+        if (elem.getAttribute('data-id')) {
+            params.do = 'details';
+            params.id = elem.getAttribute('data-id');
+        } else {
+            params.do = 'search';
+            params.q = this.form.film.value;
+        }
+        return params;
+    }
 }
-
-export default new Search();

@@ -1,33 +1,44 @@
-import Films from './Films.js';
-import Header from './Header.js';
-import Search from './Search.js';
+import Sidebar from './Sidebar';
+import Header from './Header';
 import Content from './Content';
-import Genres from '../constants/Genres';
 
-import {} from './../constants/root.js';
-
-class App {
-    async render() {
-        // this.addEventWindow();
-        console.log('render');
-        // Genres.set();
-        Header.render();
-        Content.render();
-
-        // Films.render();
-        // Content.render();
-        // Footer.render();
-        // Films.renderMain();
-        // Films.renderSearch();
+export default class App {
+    constructor() {
+        this.url = new URL(document.location.href);
     }
-    // addEventWindow() {
-    //     console.log('added');
-    //     window.addEventListener('popstate', () => {
-    //         console.log('update');
-    //         // url = new URL(document.location.href);
-    //         this.render();
-    //     });
-    // }
-}
+    update(params) {
+        const names = Object.keys(params);
+        if (names.length === 1 && names[0] === 'page') {
+            if (params.page === '1') {
+                this.url.searchParams.delete('page');
+            } else {
+                if (!this.url.searchParams.has('do')) {
+                    this.url.searchParams.set('do', 'popular');
+                }
+                this.url.searchParams.set('page', params.page);
+            }
+        } else {
+            this.url = new URL(this.url.pathname, this.url.origin);
+            names.forEach((name) => {
+                this.url.searchParams.set(name, params[name]);
+            });
+        }
 
-export default new App();
+        history.pushState(null, null, this.url);
+        this.sidebar.close();
+        this.content.render();
+    }
+    render() {
+        this.sidebar = new Sidebar(this.update.bind(this));
+        this.header = new Header('.header__container', this.update.bind(this));
+        this.content = new Content('.main__container', this.update.bind(this));
+
+        this.sidebar.render();
+        this.header.render();
+        this.content.render();
+        window.addEventListener('popstate', () => {
+            this.url = new URL(document.location.href);
+            this.content.render();
+        });
+    }
+}

@@ -1,200 +1,358 @@
-import getDataAPI from '../utils/getDataAPI';
-import Content from './Content';
+import arrows from '../../img/arrows.sprite.svg';
 
-class Slider {
-    constructor() {
+export class SliderMy {
+    constructor(selector, updateCallback, settings = {}) {
+        this.slider = document.querySelector(selector);
+        this.update = updateCallback;
         this.settings = {
-            startAt: 10,
-            slidesToShow: 3,
-            backgroundTrack: true,
-            distance: 150,
-            scale: 0.5, //0-1
+            slideWidth: settings['slideWidth'] ?? 0.5, //0-1
+            slideOffset: settings['slideOffset'] ?? 0.5, // 0-1
+            arrow: settings['arrow'] ?? true,
+            startAt: settings['startAt'] ?? 0,
+            slidesToShow: settings['slidesToShow'] ?? 3,
+            backgroundTrack: settings['backgroundTrack'] ?? false,
+            scale: settings['scale'] ?? 0.5, //0-1
+            mobile: settings['mobile'] ?? true, //true false 'only'
         };
+        this.settings.slidesToShowMobile =
+            settings['slidesToShowMobile'] ?? this.settings.slidesToShow;
     }
+    init() {
+        this.slides = [...this.slider.children];
 
-    async render() {
-        this.data = await getDataAPI.getData(
-            'https://api.themoviedb.org/3/movie/popular?api_key=9c7b675f9aa1962d9049582aa1d2321c&language=ru'
-        );
-
-        const wrapperHtml = document.createElement('section');
-        wrapperHtml.classList.add('section__slider', 'slider');
-        const sliderTrack = document.createElement('div');
-        sliderTrack.classList.add('slider__track', 'track');
-
-        let slidesHtml = ``;
-
-        this.data.results.forEach((film, i) => {
-            slidesHtml += `
-			<div class="slider__slide slide" data-slide="${i}" data-id="${film.id}">
-				<img class="slide__img" src="https://image.tmdb.org/t/p/w780${film.backdrop_path}">
-				<h1 class="slide__title">${film.title}</h1>
-			</div>
-			`;
+        this.track = document.createElement('div');
+        this.track.classList.add('slider__track', 'track');
+        this.slides.forEach((slide, i) => {
+            slide.classList.add('slide');
+            slide.setAttribute('data-slide', i);
+            this.track.append(slide);
         });
 
-        sliderTrack.insertAdjacentHTML('afterbegin', slidesHtml);
+        this.slider.append(this.track);
+        this.slider.classList.add('slider');
 
-        wrapperHtml.append(sliderTrack);
+        this.checkSettings();
+        if (this.settings.arrow) this.createArrow();
+        this.checkMobile();
+        this.setCurrentClass(this.settings.startAt);
+        this.backgroundCreate();
 
-        wrapperHtml.insertAdjacentHTML(
-            'afterbegin',
-            `
-		<div class="slider__arrow-left arrow-left slider__arrow"></div>
-		`
-        );
-        wrapperHtml.insertAdjacentHTML(
-            'beforeend',
-            `
-		<div class="slider__arrow-right arrow-right slider__arrow"></div>
-		`
-        );
+        this.addTransforms();
+        if (this.settings.mobile && this.settings.mobile !== 'only') {
+            this.resizeHandler = this.resizing.bind(this);
+            window.addEventListener('resize', this.resizeHandler);
+        }
+        this.slider.addEventListener('click', this.events.bind(this));
+    }
 
-        document.querySelector('.main').prepend(wrapperHtml);
+    checkSettings() {
+        if (this.settings.slidesToShow < 0) this.settings.slidesToShow = 0;
+        if (this.settings.slidesToShow > Math.floor((this.slides.length - 1) / 2))
+            this.settings.slidesToShow = Math.floor((this.slides.length - 1) / 2);
+        if (this.settings.slidesToShowMobile < 0) this.settings.slidesToShowMobile = 0;
+        if (this.settings.slidesToShowMobile > Math.floor((this.slides.length - 1) / 2))
+            this.settings.slidesToShowMobile = Math.floor((this.slides.length - 1) / 2);
 
-        this.slides = document.querySelectorAll('.slide');
+        if (this.settings.startAt < 0) this.settings.startAt = 0;
+        if (this.settings.startAt >= this.slides.length)
+            this.settings.startAt = this.slides.length - 1;
+    }
 
-        if (0 <= this.settings.startAt < this.slides.length - 1) {
-            this.setCurrentClass(this.settings.startAt);
+    resizing() {
+        if (document.documentElement.clientWidth > 767.98 && this.isMobile) {
+            this.checkMobile();
+            if (!this.setCurrentClass(this.currentNum)) this.setActiveClass();
+            this.backgroundCreate();
+
+            this.addTransforms();
+        }
+        if (document.documentElement.clientWidth <= 767.98 && !this.isMobile) {
+            this.checkMobile();
+            if (!this.setCurrentClass(this.currentNum)) this.setActiveClass();
+            this.backgroundCreate();
+
+            this.addTransforms();
+        }
+    }
+
+    checkMobile() {
+        if (
+            this.settings.mobile != 'only' &&
+            (!this.settings.mobile || document.documentElement.clientWidth > 767.98)
+        ) {
+            this.isMobile = false;
+            this.slider.classList.remove('slider--mobile');
         } else {
-            this.setCurrentClass(0);
+            this.isMobile = true;
+            this.slider.classList.add('slider--mobile');
         }
-
-        if (this.settings.backgroundTrack) {
-            document.querySelector('.track').insertAdjacentHTML(
-                'afterbegin',
-                `
-			<div class="track__background"></div>
-			`
-            );
-            this.setBackground();
-        }
-
-        this.setActiveClass();
-
-        this.slides.forEach((slide) => console.log(slide.classList.value));
-        // console.log(this.slides);
-        let k = 0;
-        this.setPosSlides();
-
-        document.querySelector('.arrow-left').addEventListener('click', () => {
-            if (this.currentNum - 1 < 0) return;
-
-            this.movingSlides(this.currentNum - 1);
-        });
-        document.querySelector('.arrow-right').addEventListener('click', () => {
-            if (this.currentNum + 1 >= this.slides.length) return;
-
-            this.movingSlides(this.currentNum + 1);
-        });
-        this.addEventSlide();
+        this.toggleSrc();
     }
 
-    addEventSlide() {
+    toggleSrc() {
         this.slides.forEach((slide) => {
-            slide.removeEventListener('click', this.clickOnSlide);
-            if (slide.classList.contains('slide--current')) {
-                slide.addEventListener('click', this.clickOnSlide);
+            slide.querySelectorAll('img').forEach((img) => {
+                if (
+                    img.hasAttribute('data-src-mobile') &&
+                    img.hasAttribute('data-src-desktop')
+                ) {
+                    if (
+                        this.isMobile &&
+                        img.getAttribute('src') !== img.getAttribute('data-src-mobile')
+                    ) {
+                        img.setAttribute('src', img.getAttribute('data-src-mobile'));
+                    }
+                    if (
+                        !this.isMobile &&
+                        img.getAttribute('src') !== img.getAttribute('data-src-desktop')
+                    ) {
+                        img.setAttribute('src', img.getAttribute('data-src-desktop'));
+                    }
+                }
+            });
+        });
+
+        this.slider.querySelectorAll('.arrow-link').forEach((link) => {
+            if (
+                this.isMobile &&
+                link.getAttribute('xlink:href').match(/(?<=#).*$/) !==
+                    link.getAttribute('data-id-mobile')
+            ) {
+                link.setAttribute(
+                    'xlink:href',
+                    link
+                        .getAttribute('xlink:href')
+                        .replace(/(?<=#).*$/, link.getAttribute('data-id-mobile'))
+                );
+            }
+            if (
+                !this.isMobile &&
+                link.getAttribute('xlink:href').match(/(?<=#).*$/) !==
+                    link.getAttribute('data-id-desktop')
+            ) {
+                link.setAttribute(
+                    'xlink:href',
+                    link
+                        .getAttribute('xlink:href')
+                        .replace(/(?<=#).*$/, link.getAttribute('data-id-desktop'))
+                );
             }
         });
     }
-
-    clickOnSlide(event) {
-        const url = new URL(document.location.href);
-        url.searchParams.set('do', 'details');
-        url.searchParams.set('id', event.target.getAttribute('data-id'));
-        url.searchParams.delete('page');
-        url.searchParams.delete('q');
-        console.warn(url);
-        history.pushState(null, null, url);
-        Content.render();
+    createArrow() {
+        this.track.insertAdjacentHTML(
+            'beforebegin',
+            `<div class="slider__previous slider__navigation navigation navigation-previous">
+            <svg class="slider__arrow-left arrow-left slider__arrow arrow"><use class="arrow-link" xlink:href="${arrows}#arrow" data-id-mobile="arrow--mobile" data-id-desktop="arrow" /></svg>
+			</div>`
+        );
+        this.track.insertAdjacentHTML(
+            'afterend',
+            `<div class="slider__next slider__navigation navigation navigation-next">
+            <svg class="slider__arrow-right arrow-right slider__arrow arrow"><use class="arrow-link" xlink:href="${arrows}#arrow" data-id-mobile="arrow--mobile" data-id-desktop="arrow" /></svg>
+			</div>`
+        );
     }
-
+    setCurrentClass(newCurrNum) {
+        if (
+            this.isMobile &&
+            (newCurrNum < this.settings.slidesToShowMobile ||
+                newCurrNum > this.slides.length - 1 - this.settings.slidesToShowMobile)
+        ) {
+            newCurrNum += Math.min(
+                Math.abs(this.settings.slidesToShowMobile - newCurrNum),
+                this.slides.length - 1 - this.settings.slidesToShowMobile - newCurrNum
+            );
+        }
+        if (newCurrNum === this.currentNum) return false;
+        this.slides.forEach((slide, i) => {
+            slide.classList.remove('slide--current');
+            if (i === newCurrNum) slide.classList.add('slide--current');
+        });
+        this.setActiveClass();
+        return true;
+    }
+    setActiveClass() {
+        this.slides.forEach((slide, i) => {
+            slide.classList.remove('slide--active');
+            if (this.isMobile) {
+                if (
+                    i >= this.currentNum - this.settings.slidesToShowMobile &&
+                    i <= this.currentNum + this.settings.slidesToShowMobile
+                )
+                    slide.classList.add('slide--active');
+            } else if (
+                i >= this.currentNum - this.settings.slidesToShow &&
+                i <= this.currentNum + this.settings.slidesToShow
+            )
+                slide.classList.add('slide--active');
+        });
+        this.checkArrowState();
+    }
+    checkArrowState() {
+        if (!this.settings.arrow) return;
+        if (this.isMobile) {
+            if (this.currentNum - this.settings.slidesToShowMobile <= 0)
+                this.slider
+                    .querySelector('.navigation-previous')
+                    .classList.add('disabled');
+            else
+                this.slider
+                    .querySelector('.navigation-previous')
+                    .classList.remove('disabled');
+            if (
+                this.currentNum + this.settings.slidesToShowMobile >=
+                this.slides.length - 1
+            )
+                this.slider.querySelector('.navigation-next').classList.add('disabled');
+            else
+                this.slider
+                    .querySelector('.navigation-next')
+                    .classList.remove('disabled');
+        } else {
+            if (this.currentNum <= 0)
+                this.slider
+                    .querySelector('.navigation-previous')
+                    .classList.add('disabled');
+            else
+                this.slider
+                    .querySelector('.navigation-previous')
+                    .classList.remove('disabled');
+            if (this.currentNum >= this.slides.length - 1)
+                this.slider.querySelector('.navigation-next').classList.add('disabled');
+            else
+                this.slider
+                    .querySelector('.navigation-next')
+                    .classList.remove('disabled');
+        }
+    }
+    backgroundCreate() {
+        if (this.isMobile) {
+            if (this.track.querySelector('.track__background'))
+                this.track.querySelector('.track__background').remove();
+            return;
+        }
+        if (this.settings.backgroundTrack) {
+            if (!this.track.querySelector('.track__background'))
+                this.track.insertAdjacentHTML(
+                    'afterbegin',
+                    `<div class="track__background"></div>`
+                );
+            this.track.querySelector(
+                '.track__background'
+            ).style.background = `url(${document
+                .querySelector('.slide--current img')
+                .getAttribute('src')
+                .replace('w780', 'w300')}) center/cover`;
+        }
+    }
     setBackground() {
-        document.querySelector(
+        if (this.isMobile) return;
+        this.track.querySelector(
             '.track__background'
         ).style.background = `url(${document
-            .querySelector('.slide--current')
-            .getElementsByClassName('slide__img')[0]
+            .querySelector('.slide--current img')
             .getAttribute('src')
             .replace('w780', 'w300')}) center/cover`;
     }
 
     movingSlides(newCurrentNum) {
-        this.slides.forEach((slide) => {
-            slide.classList.remove('slide--current');
-            slide.classList.remove('slide--active');
-        });
-
-        this.setCurrentClass(newCurrentNum);
-
-        this.setActiveClass();
-
-        this.setBackground();
-
-        this.setPosSlides();
-
-        this.addEventSlide();
+        if (!this.setCurrentClass(+newCurrentNum)) return;
+        this.backgroundCreate();
+        this.addTransforms();
     }
 
-    setPosSlides() {
-        let length = 150;
-        const scale = 1 - Math.pow(this.settings.scale, 2);
-
-        this.slides.forEach((slide) => {
-            slide.style.transform = `scale(0.001)`;
-            slide.style.zIndex = `0`;
-            if (
-                slide.classList.contains('slide--active') &&
-                !slide.classList.contains('slide--current')
-            ) {
-                const deltaSlides = slide.getAttribute('data-slide') - this.currentNum;
-
-                const scaleFunc = Math.sqrt(
-                    Math.abs(
-                        (deltaSlides / this.settings.slidesToShow) * scale -
-                            Math.sign(deltaSlides)
-                    )
-                );
-                console.log(scaleFunc);
-
-                const positionFunc =
-                    this.settings.distance *
-                    Math.sign(deltaSlides) *
-                    Math.sqrt(
-                        (Math.abs(deltaSlides) / this.settings.slidesToShow) *
-                            (2 - Math.abs(deltaSlides) / this.settings.slidesToShow)
-                    );
-
-                slide.style.transform = `translate(${
-                    positionFunc +
-                    (slide.clientWidth / 2) * Math.sign(deltaSlides) * (1 - scaleFunc)
-                }px) scale(${scaleFunc})`;
-
-                slide.style.zIndex = `${100 - Math.abs(deltaSlides)}`;
-            }
-            if (slide.classList.contains('slide--current')) {
-                slide.style.zIndex = `100`;
-                slide.style.transform = ``;
-            }
-        });
-    }
-    setCurrentClass(currNum) {
-        this.slides[currNum].classList.add('slide--current');
-    }
-    setActiveClass() {
-        for (
-            let i = this.currentNum - this.settings.slidesToShow;
-            i <= this.currentNum + this.settings.slidesToShow;
-            i++
+    events(event) {
+        if (event.target.closest('.slider__previous') && this.currentNum > 0) {
+            this.movingSlides(this.currentNum - 1);
+        }
+        if (
+            event.target.closest('.slider__next') &&
+            this.currentNum < this.slides.length - 1
         ) {
-            this.slides[i] ? this.slides[i].classList.add('slide--active') : false;
+            this.movingSlides(this.currentNum + 1);
+        }
+        if (event.target.closest('.slide--active')) {
+            if (event.target.closest('.slide--current')) {
+                const params = {};
+                params.do = 'details';
+                params.id = event.target
+                    .closest('.slide--current')
+                    .getAttribute('data-id');
+
+                this.update(params);
+            } else {
+                if (this.isMobile) {
+                    const params = {};
+                    params.do = 'details';
+                    params.id = event.target
+                        .closest('.slide--active')
+                        .getAttribute('data-id');
+
+                    this.update(params);
+                } else
+                    this.movingSlides(
+                        event.target.closest('.slide--active').getAttribute('data-slide')
+                    );
+            }
         }
     }
 
+    addTransforms() {
+        if (this.isMobile) {
+            this.slides.forEach((slide) => {
+                slide.style.transform = `translate(${
+                    -100 * (this.currentNum - this.settings.slidesToShowMobile)
+                }%)`;
+                slide.style.zIndex = `100`;
+                slide.style.minWidth = `${
+                    100 / (this.settings.slidesToShowMobile * 2 + 1)
+                }%`;
+                slide.style.maxWidth = ``;
+            });
+        } else {
+            const scale = 1 - Math.pow(this.settings.scale, 2);
+
+            this.slides.forEach((slide) => {
+                slide.style.transform = `scale(0.001)`;
+                slide.style.zIndex = `0`;
+                slide.style.maxWidth = `${this.settings.slideWidth * 100}%`;
+                if (slide.matches('.slide--current')) {
+                    slide.style.zIndex = `100`;
+                    slide.style.transform = ``;
+                } else if (slide.matches('.slide--active')) {
+                    const deltaSlides =
+                        slide.getAttribute('data-slide') - this.currentNum;
+                    const scaleFunc = Math.sqrt(
+                        Math.abs(
+                            (deltaSlides / this.settings.slidesToShow) * scale -
+                                Math.sign(deltaSlides)
+                        )
+                    );
+                    const positionFunc =
+                        ((1 - scaleFunc) / 2 +
+                            Math.sqrt(
+                                Math.abs(deltaSlides / this.settings.slidesToShow)
+                            ) *
+                                ((((1 - this.settings.slideWidth) / 2) *
+                                    this.settings.slideOffset) /
+                                    this.settings.slideWidth)) *
+                        100 *
+                        Math.sign(deltaSlides);
+
+                    slide.style.transform = `translate(${positionFunc}%) scale(${scaleFunc})`;
+                    slide.style.zIndex = `${100 - Math.abs(deltaSlides)}`;
+                }
+            });
+        }
+    }
     get currentNum() {
-        return +document.querySelector('.slide--current').getAttribute('data-slide');
+        if (this.slider.querySelector('.slide--current'))
+            return +this.slider
+                .querySelector('.slide--current')
+                .getAttribute('data-slide');
+    }
+    delete() {
+        window.removeEventListener('resize', this.resizeHandler);
     }
 }
-
-export default new Slider();

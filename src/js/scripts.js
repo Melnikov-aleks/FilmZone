@@ -1,7 +1,6 @@
 import '../styles/style.scss';
-import '../../node_modules/slick-carousel/slick/slick.scss';
 
-import App from './components/App.js';
+import App from './components/App';
 
-window.addEventListener('popstate', () => App.render());
-App.render();
+const app = new App();
+app.render();

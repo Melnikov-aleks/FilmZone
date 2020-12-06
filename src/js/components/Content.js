@@ -1,59 +1,29 @@
-import { BODY } from '../constants/root';
+import MainSlider from './MainSlider';
+import { FilmDetails, FilmCards } from './Films';
 
-import Slider from './Slider';
-import Tabs from './Tabs';
-import Films from './Films';
-
-class Content {
+export default class Content {
+    constructor(selector, updateCallback) {
+        this.container = document.querySelector(selector);
+        this.filmCards = new FilmCards(this.container, updateCallback);
+        this.filmDetails = new FilmDetails(this.container, updateCallback);
+        this.slider = new MainSlider(this.container, updateCallback);
+    }
     render() {
-        const url = new URL(document.location.href);
+        this.url = new URL(document.location.href);
+        this.container.classList.add('loading');
 
-        console.warn('Content render');
-
-        if (!document.querySelector('.main')) {
-            const Main = document.createElement('main');
-            Main.classList.add('main');
-
-            Main.insertAdjacentHTML(
-                'afterbegin',
-                '<div class="main__container container"></div>'
-            );
-
-            BODY.append(Main);
-        }
-
-        switch (url.searchParams.get('do')) {
+        switch (this.url.searchParams.get('do')) {
             case 'details':
-                this.deleteSlider();
-                this.clearMain();
-
-                Films.renderDetails();
+                this.slider.delete();
+                this.filmDetails.render();
                 break;
             case 'search':
-                this.deleteSlider();
-                this.clearMain();
-
-                Films.renderCards();
+                this.slider.delete();
+                this.filmCards.render();
                 break;
             default:
-                this.deleteSlider();
-                this.clearMain();
-
-                Slider.render();
-            // Tabs.render();
-            // Films.renderCards();
-        }
-    }
-    deleteSlider() {
-        while (document.querySelector('.slider')) {
-            document.querySelector('.slider').remove();
-        }
-    }
-    clearMain() {
-        while (document.querySelector('.main__container').firstChild) {
-            document.querySelector('.main__container').firstChild.remove();
+                this.slider.render();
+                this.filmCards.render();
         }
     }
 }
-
-export default new Content();

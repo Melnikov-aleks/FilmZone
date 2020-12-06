@@ -1,0 +1,47 @@
+.tabs-wrap {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    .tab {
+        white-space: nowrap;
+        padding: 5px;
+        cursor: pointer;
+        &__title {
+            vertical-align: middle;
+        }
+        &__icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            vertical-align: middle;
+            fill: rgba(0, 0, 0, 0);
+            color: rgba(0, 0, 0, 0);
+            &-hot {
+                stroke: rgba(0, 0, 0, 1);
+                stroke-width: 20px;
+            }
+
+            &-play {
+                stroke: rgba(0, 0, 0, 1);
+                stroke-width: 3px;
+            }
+            &-future {
+                fill: rgba(0, 0, 0, 1);
+            }
+        }
+        &--active {
+            .icon {
+                stroke: none;
+                fill: $color-accent;
+                &-hot {
+                    color: #f3705a;
+                }
+                &-like {
+                    color: #516fcb;
+                }
+            }
+        }
+    }
+}

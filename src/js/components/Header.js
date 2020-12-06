@@ -1,29 +1,25 @@
-import { BODY, LOGO_SVG } from './../constants/root.js';
-import Search from './Search.js';
+import logo from '../../img/logo.svg';
 
-class Header {
+import Search from './Search';
+import { productUseHtml } from '../utils/API';
+
+export default class Header {
+    constructor(selector, updateCallback) {
+        this.container = document.querySelector(selector);
+        this.update = updateCallback;
+    }
+
     render() {
-        if (document.querySelector('.header')) return;
-
-        const wrapperHtml = document.createElement('header');
-
         let innerHtml = `
-		<div class="header__container container">
-			<div class="header__product-use"></div>
-			<a class="header__logo" href="http://localhost:3001/">
-				${LOGO_SVG}
+			<div class="header__product-use product-use">
+				${productUseHtml}
+			</div>
+			<a class="header__logo logo" href="https://melnikov-aleks.github.io/FilmZone">
+				<svg class="logo__svg"><use xlink:href="${logo}#logo"></use></svg>
 			</a>
-		</div>
 		`;
 
-        wrapperHtml.classList.add('header');
-        wrapperHtml.insertAdjacentHTML('afterbegin', innerHtml);
-
-        BODY.prepend(wrapperHtml);
-
-        Search.render();
-        Search.addEvent();
+        this.container.insertAdjacentHTML('afterbegin', innerHtml);
+        new Search('.header__container', this.update).render();
     }
 }
-
-export default new Header();

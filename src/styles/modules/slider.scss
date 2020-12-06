@@ -1,0 +1,146 @@
+.slider {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 20px;
+
+    .track {
+        position: relative;
+        padding: 0;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: nowrap;
+        overflow: hidden;
+        &__background {
+            position: absolute;
+            display: block;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-position: center;
+            filter: blur(5px);
+            transition: 1s ease;
+        }
+    }
+    .slide {
+        position: absolute;
+        opacity: 0;
+        box-sizing: border-box;
+        max-height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        overflow: hidden;
+        transition: all 2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        &--active {
+            opacity: 1;
+        }
+        &--current {
+            position: relative;
+            opacity: 1;
+        }
+        img {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            li {
+                display: inline-block;
+                &::after {
+                    content: ',\A0';
+                }
+                &:last-child {
+                    &::after {
+                        content: '';
+                    }
+                }
+            }
+        }
+    }
+    .navigation {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 5%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0) 10%,
+            rgba($color: $color-primary, $alpha: 0.4) 100%
+        );
+        transition: all 0.5s ease;
+        z-index: 110;
+        cursor: pointer;
+        &-previous {
+            left: 0;
+            transform: scaleX(-1);
+        }
+        &-next {
+            right: 0;
+        }
+        .arrow {
+            fill: $color-text;
+            width: 100%;
+        }
+        &.disabled {
+            width: 0;
+            cursor: default;
+        }
+    }
+    &--mobile {
+        display: flex;
+        .track {
+            margin: 0 auto;
+            margin-bottom: 30px;
+            justify-content: flex-start;
+            align-items: flex-start;
+            background-color: $color-background;
+            &__background {
+                display: none;
+            }
+        }
+        .slide {
+            opacity: 1;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .navigation {
+            top: auto;
+            height: 30px;
+            width: auto;
+            border-left: 1px solid $color-secondary;
+            background: $color-primary;
+
+            &-previous {
+                left: 0;
+                right: 50%;
+            }
+            &-next {
+                left: 50%;
+                right: 0;
+            }
+            .arrow {
+                height: 100%;
+                width: 100%;
+                fill: $color-text;
+            }
+            &.disabled {
+                width: auto;
+                background-color: $color-tertiary;
+                .arrow {
+                    fill: $color-secondary;
+                }
+            }
+        }
+    }
+}
