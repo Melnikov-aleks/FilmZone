@@ -1,7 +1,7 @@
 import moment from './moment';
 import { API_BASE, API_KEY, API_PATHNAME } from '../constants/api';
 
-export const productUseHtml = `<a class="product-use__link" href="https://www.themoviedb.org/documentation/api"><img class="product-use__logo" src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_2-d537fb228cf3ded904ef09b136fe3fec72548ebc1fea3fbbd1ad9e36364db38b.svg"></a>
+export const productUseHtml = `<a class="product-use__link" href="https://www.themoviedb.org/documentation/api" target="_blank"><img class="product-use__logo" src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_2-d537fb228cf3ded904ef09b136fe3fec72548ebc1fea3fbbd1ad9e36364db38b.svg"></a>
 <p class="product-use__txt">This product uses the TMDb API but is not endorsed or certified by TMDb.</p>`;
 
 export function generateUrlAPI(query) {
